@@ -1,0 +1,36 @@
+/*------------------------------------------------
+Site:       thumboard
+CSS Author: Rich Wright
+Updated:
+Updated by:
+------------------------------------------------*/
+.page {
+    width: 90%;
+    min-width: 500px;
+    margin: 0 auto;
+    background: #fff;
+    border: 2px outset #000;
+    text-align: center;
+}
+
+.thumboard {
+    font-family: "Courier New", monospace;
+    font-size: 20px;
+    font-weight: normal;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 0 auto;
+}
+
+.thumboard table, .thumboard tbody, .thumboard td, .thumboard th {
+    border: 1px solid #000;
+}
+
+.thumboard td {
+    padding: 10px 15px;
+    background: #eef;
+}
+
+.thumboard td:hover {
+    background: #ffe;
+}
