@@ -3,15 +3,14 @@
     <head>
     <meta charset="utf-8">
     <link rel="stylesheet" type="text/css" href="css/thumboard.css" />
-    <script type="text/javascript" src="js/thumboard.js"></script>
     <title>thumboard</title>
     </head>
     <body>
     <div class="page">
-        <div><form>
+        <div><form id="form1">
             Input 1: <input id="inp1" name="inp1" type="text" width="40"
-                value="This text is too long." maxlength="10"
-                title="maxlength of 10"><br />
+                value="" maxlength="10"
+                title=""><br />
             Input 2: <input id="inp2" name="inp2" type="text" width="40"
                 value="Initial value of input 2."
                 title="maxlength not set">
@@ -21,7 +20,10 @@
         <div id="qwerty">QWERTY</div>
         <div><h3>Thumb</h3></div>
         <div id="thumb">THUMBOARD</div>
+        <div id="words"></div>
     </div>
     <div id="log"></div>
+    <script type="text/javascript" src="js/words.js"></script>
+    <script type="text/javascript" src="js/thumboard.js"></script>
     </body>
 </html>

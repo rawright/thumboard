@@ -1,0 +1,4 @@
+test*.*
+*.ppr
+top500words.txt
+json/top500.json

@@ -12,6 +12,28 @@ Updated by:
     border: 2px outset #000;
     text-align: center;
 }
+.words {
+    font-family: "DejaVu Sans",
+        "URW Gothic L",
+        "Helvetica Neue",
+        Helvetica,
+        Arial,
+        "Microsoft Sans Serif",
+        sans-serif;
+    font-size: 10px;
+    font-weight: normal;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 0 auto;
+}
+
+.words td {
+    border-left: 1px solid #000;
+}
+
+.words td:hover {
+    color: #f00;
+}
 
 .thumboard {
     font-family: "Courier New", monospace;
