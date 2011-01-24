@@ -1,4 +1,4 @@
-Thumboard v0.2
+Thumboard v0.2.1
 
 Thumboard is a virtual keyboard intended for use on devices without
 physical keyboards and optimized for two-finger (or thumb) input.
@@ -6,11 +6,13 @@ physical keyboards and optimized for two-finger (or thumb) input.
 This inital version implements a qwerty-type keyboard rather than the
 thumboard. The intent is to work out the basics of the virtual keyboard
 prior to adding two-finger-enty-optimization logic. This version also
-begins to make use of the top1000 words list (display only). Matching
+makes use of the top1000 words list and select from that list. Matching
 words are displayed following virtual keyboard clicks. The matches
 are to word segments from the insertion point back to a previous space
 or the beginning of the input area. Fullword matches are redundant so not
 shown.
+
+Added Qunit test cases
 
 This version has been tested with Chrome and Firefox. Additional code
 is needed to support ie because of the way it implements the selectionStart
@@ -18,7 +20,8 @@ and selectionEnd attributes.
 
 Files
 - js/thumboard.js
-- js/words.js - ajax to load top1000.json
 - css/thumboard.css
 - json/top1000.json - top 1000 words by usage
 - index.html
+- qunit/test1.js
+- qunit/test1.html

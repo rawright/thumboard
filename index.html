@@ -23,7 +23,13 @@
         <div id="words"></div>
     </div>
     <div id="log"></div>
-    <script type="text/javascript" src="js/words.js"></script>
     <script type="text/javascript" src="js/thumboard.js"></script>
+    <script type="text/javascript">
+        function initIt() {
+            thumboard.init('qwerty');
+            document.getElementById('form1').reset();
+        }
+        window.onload=initIt; 
+    </script>
     </body>
 </html>

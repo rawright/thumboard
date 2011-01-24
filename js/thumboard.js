@@ -1,17 +1,15 @@
  /*
- * thumboard virtual keyboard - v0.2
+ * thumboard virtual keyboard - v0.2.1
  * Copywright 2011, Rich Wright
  *   
  */
 var thumboard = {};
-thumboard.inputs = []; // Array of input type = text in the document
-//TODO: Determine which blur events should cause an input to be removed
-//      from active. (Virtual keyboard click causes such a blur event.)
-thumboard.active = null; // Array index of the input with focus
-thumboard.target = null; // Input with focus
-// Basic qwerty keys
+
+thumboard.words = [];    // List of most used words
+thumboard.inputs = [];   // Array of monitored input elements
+thumboard.target = null; // Monitored input element with focus
+
 thumboard.qwerty = ['1234567890','qwertyuiop','asdfghjkl ','zxcvbnm   '];
-// Control keys (display and internal 'switch' values)
 thumboard.ctlDspl = ['&larr;','&rarr;','B','H','E','T',' ',' ',' ',' '];
 thumboard.ctlAbbr = ['left','right','back','home','end','tab',' ',' ',' ',' '];
 
@@ -22,6 +20,12 @@ thumboard.ctlAbbr = ['left','right','back','home','end','tab',' ',' ',' ',' '];
 // Add focus events to all inputs
 thumboard.init = function (id) {
     var kb, out, i, j, tmp;
+    thumboard.ajax('json/top1000.json',
+        '',
+        function(xmlhttp) {
+            thumboard.words = eval(xmlhttp.responseText);
+        },
+        'GET');
     kb = thumboard.qwerty;
     out = '<table id="thumboard" class="thumboard">';
     for(i = 0; i < kb.length; i++) {
@@ -57,45 +61,8 @@ thumboard.init = function (id) {
 thumboard.gotFocus = function (e) {
     var i;
     thumboard.target = e.target;
-    for(i = 0; i < thumboard.inputs.length; i++) {
-        if(thumboard.inputs[i] === thumboard.target) {
-            thumboard.active = i;
-            break;
-        }
-    }
 };
 
-// Display words that match input from the virtual keyboar
-// Matches on from insertion point back to prior word gap or beginning
-// of the input area.
-// The word list is the top 1000 words used.
-// Source is: http://www.duboislc.org/EducationWatch/First100Words.html
-// The list is shown in order of frequency of word use.
-thumboard.wordsList = function () {
-    var tmp, out, i, j;
-    if(!thumboard.target) {
-        tmp = '';
-    } else {
-        tmp = thumboard.target.value;
-        j = thumboard.target.selectionStart;
-        i = j;
-        while(i > 0 && tmp.substr(i-1,1) !== ' ') {
-            i -= 1;
-        }
-        tmp = tmp.substr(i, j-i);    
-    }
-    out = '<table class="words"><tr>';
-    for(i = 0, j = 0; i < words.list.length && j < 20; i++) {
-      if(tmp.length < words.list[i].length) {
-        if(tmp === words.list[i].substr(0, tmp.length)) {
-            out += '<td abbr="word">' + words.list[i] + '</td>';
-            j += 1;
-        }
-      }
-    }
-    out += '</tr></table>'; 
-    document.getElementById('thumb').innerHTML = out;
-};
 
 // Capture virtual keyboard clicks and process virtual keystrokes
 //  myTarget points to the last monitored element to receive focus
@@ -138,11 +105,22 @@ thumboard.keyClick = function (e) {
             j = i;
         }
         break;
+    case 'word':
+        while(i > 0 && tmp.charAt(i-1) !== ' ') {
+            i -= 1;
+        }
+        s1 = tmp.substr(0,i);
+        s2 = tmp.substr(j);
+        tmp = s1 + key + s2;
+        i = s1.length + key.length;
+        j = i;
+        while(j < tmp.length && tmp.charAt(j) != ' ') {
+            j += 1;
+        }
+        break;
     case 'tab':
-        thumboard.active =
-            (thumboard.active < thumboard.inputs.length-1) ?
-                thumboard.active + 1 : 0;
-        thumboard.target = thumboard.inputs[thumboard.active];
+        thumboard.target =
+            thumboard.tab(thumboard.inputs, thumboard.target);
         thumboard.target.focus();
         i = thumboard.target.selectionStart;
         j = thumboard.target.selectionEnd;
@@ -180,11 +158,74 @@ thumboard.keyClick = function (e) {
     thumboard.target.value = tmp;
     thumboard.target.selectionStart = i;
     thumboard.target.selectionEnd = j;
-    thumboard.wordsList();
+    document.getElementById('words').innerHTML = 
+        thumboard.getFormattedWordsList(tmp, i, thumboard.words, 20);
+
 };
 
-function initIt() {
-    thumboard.init('qwerty');
-    document.getElementById('form1').reset();
+thumboard.tab = function(inputs, target) {
+    var i = 0;
+    target = target || inputs[inputs.length-1];
+    while(i < inputs.length && inputs[i] !== target) {
+        i += 1;
+    }
+    i = i > inputs.length - 2 ? 0 : i + 1;
+    return inputs[i]; 
 }
-window.onload=initIt; 
+
+// Return word segment preceding start in value
+thumboard.getWordSeed = function(value, start) {
+    var i;
+    i = (start < 0) ? 0 : (start > value.length) ? value.length : start;
+    while(i > 0 && value.charAt(i-1) !== ' ') {
+        i -= 1;
+    }
+    return value.substr(i, start-i);
+};
+
+// Return words prefixed with seed but not fully equal to seed
+thumboard.getWordsList = function(seed, wordsArray) {
+    var i, arr = [];
+    for(i = 0; i < wordsArray.length; i++) {
+        if(seed.length < wordsArray[i].length &&
+            seed === wordsArray[i].substr(0,seed.length)) {
+            arr.push(wordsArray[i]);    
+        }
+    }
+    return arr;
+};
+
+// getFormatedWordsList
+// value is the input string
+// start equates to selectionStart
+// wordsArray is an array of words
+// max is the maximum number of words to extract
+// returns a table of words ready to add to the DOM
+thumboard.getFormattedWordsList = function (value, start, wordsArray, max) {
+    var arr, out, i;
+    arr = thumboard.getWordsList(thumboard.getWordSeed(value, start),
+        wordsArray);
+    if(arr.length > max) {
+        arr.length = max;
+    }
+    out = '<table class="words"><tr>';
+    for(i = 0; i < arr.length; i++) {
+        out += '<td abbr="word">' + arr[i] + '</td>';
+    }
+    out += '</tr></table>';
+    return out;
+};
+
+// ajax request
+thumboard.ajax = function (url, data, callback, type) {
+    type = 'GET'; // only type currently supported
+    var xmlhttp = window.XMLHttpRequest ?
+        new XMLHttpRequest() : new ActiveXOBject("Microsoft.XMLHTTP");
+    xmlhttp.onreadystatechange = function () {
+        if(xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+            callback(xmlhttp);
+        }
+    };
+    xmlhttp.open(type, url, true);
+    xmlhttp.send();
+};
