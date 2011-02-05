@@ -1,231 +1,311 @@
- /*
- * thumboard virtual keyboard - v0.2.1
- * Copywright 2011, Rich Wright
- *   
- */
-var thumboard = {};
+// thumboard virtual keyboard - v0.2.2
+// Copywright 2011, Rich Wright
 
-thumboard.words = [];    // List of most used words
-thumboard.inputs = [];   // Array of monitored input elements
-thumboard.target = null; // Monitored input element with focus
+var thumboard = {
 
-thumboard.qwerty = ['1234567890','qwertyuiop','asdfghjkl ','zxcvbnm   '];
-thumboard.ctlDspl = ['&larr;','&rarr;','B','H','E','T',' ',' ',' ',' '];
-thumboard.ctlAbbr = ['left','right','back','home','end','tab',' ',' ',' ',' '];
-
-// Initialize the virtual keyboard display
-// (Uses abbr attribute to identify key types. This value used in switch
-//  in keyClick function.)
-// Add keyboard click event to div
-// Add focus events to all inputs
-thumboard.init = function (id) {
-    var kb, out, i, j, tmp;
-    thumboard.ajax('json/top1000.json',
-        '',
-        function(xmlhttp) {
-            thumboard.words = eval(xmlhttp.responseText);
-        },
-        'GET');
-    kb = thumboard.qwerty;
-    out = '<table id="thumboard" class="thumboard">';
-    for(i = 0; i < kb.length; i++) {
-        out += '<tr>';
-        for(j = 0; j < kb[i].length; j++) {
-            out += '<td abbr="chr">' + kb[i].charAt(j) + '</td>';
-        }
-        out += '</tr>';
-    }
-    out += '<tr>';
-    for(i = 0; i < thumboard.ctlDspl.length; i++) {
-        out += '<td abbr="' + thumboard.ctlAbbr[i] + '">' +
-            thumboard.ctlDspl[i] + '</td>';
-    }
-    out += '</tr></table>';
-    document.getElementById(id).innerHTML = out;
-    tmp = document.getElementsByTagName('input');
-    for(i = 0; i < tmp.length; i++) {
-        if(tmp[i].type === 'text') {
-            thumboard.inputs.push(tmp[i]);
-            tmp[i].addEventListener('focus', thumboard.gotFocus, false);
+// Todo: disallow direct manipulation of config parameters
+'config' : {
+    'id' : 'thumboard',
+    'kb' : null,
+    'hidden' : true,
+    'url' : 'json/top1000.json',
+    'words' : [],
+    'inputs' : [],
+    'target' : null,
+    'ctlDspl' : ['H','&larr;','B','T','space','t','D','&rarr;','E'],
+    'ctlAbbr' : ['home','left','back','shift_tab','space','tab','delete','right','end']
+},
+        
+'init' : function(id) {
+    var i, inputs,
+        ajaxCallback = function(xhr) {
+            thumboard.config.words = eval(xhr.responseText);
+            thumboard.buildKeyboard('',0);
+        };
+        
+    // Get reference to the keyboard location and hide that element
+    thumboard.config.id = id || thumboard.config.id;
+    thumboard.config.kb = document.getElementById(thumboard.config.id);
+    addClass(thumboard.config.kb,'hide');
+    thumboard.config.hidden = true;
+    
+    // Get words list from server
+    thumboard.ajax(thumboard.config.url, ajaxCallback);
+    
+    // Save references to input elements
+    // Todo: capture dynamically added input elements??
+    inputs = document.getElementsByTagName('input');
+    for(i = 0; i < inputs.length; i++) {
+        if(inputs[i].type === 'text') {
+            thumboard.config.inputs.push(inputs[i]);
+            addEvent(inputs[i],'focus',thumboard.gotFocus);
         }
     }
-    document.getElementById(id).addEventListener('click',
-        thumboard.keyClick, false);
-    document.getElementById('words').addEventListener('click',
-        thumboard.keyClick, false);
-};
+    
+    // Add click event keyboard
+    addEvent(thumboard.config.kb,'click',thumboard.keyClick);
+    // Add click event to test for lost focus and then hide keyboard
+    addEvent(document,'click',thumboard.lostFocus);
+},
+    
+'gotFocus' : function(e) {
+    // If input receives focus save it as the current target
+    // and reshow the keyboard if it was hidden
+    // Note that this event will fire whenever the virtual keyboard
+    // is clicked, since it will return focus to the previous target
+    thumboard.config.target = e.target;
+    if(thumboard.config.hidden) {
+        removeClass(thumboard.config.kb,'hide');
+        thumboard.config.hidden = false;
+    }
+},
 
-// Save as target the input receiving focus
-// Also set the inputs index matching target in active (this used
-//  for tabbing)
-thumboard.gotFocus = function (e) {
+'lostFocus' : function(e) {
     var i;
-    thumboard.target = e.target;
-};
-
-
-// Capture virtual keyboard clicks and process virtual keystrokes
-//  myTarget points to the last monitored element to receive focus
-//  Since virtual keyboard steals focus, return focus to myTarget
-//  Only process if tagName is 'td' and abbr attribute initialized
-//  Initialize working fields:
-//      key = the value of the td element clicked
-//      i, j, l equate to curstor start, end, and current length
-//      s1 and s2 hold prefix and suffix to selected text
-//      max holds the working max input text length
-//      tmp holds the input text replacement value
-//  Process keyboard action and reset input contest and seletion
-//      start and end values
-// Todo: handle selectionStart and selectionEnd correctly for IE    
-thumboard.keyClick = function (e) {
-    var key, i, j, l, s1, s2, max, tmp;
-    if(!thumboard.target) { // don't process unless input taret has focus
-        return;
+    
+    // If clicked element is one of saved inputs then return
+    for(i = 0; i < thumboard.config.inputs.length; i++) {
+        if(e.target === thumboard.config.inputs[i]) {
+            return;
+        }
     }
-    thumboard.target.focus(); // return focus from keyboard to input
-    // Make sure a monitored key was clicked
-    if(e.target.tagName.toLowerCase() !== 'td' ||
-            !e.target.abbr) {
-        return;
+    
+    // If clicked element is not the virtual keyboard, hide the keyboard
+    if(e.target.abbr === undefined) {
+        addClass(thumboard.config.kb,'hide');
+        thumboard.config.hidden = true;
     }
-    key = e.target.innerHTML;
-    i = thumboard.target.selectionStart;
-    j = thumboard.target.selectionEnd;
-    l = thumboard.target.value.length;
-    s1 = thumboard.target.value.substr(0,i);
-    s2 = thumboard.target.value.substr(j,l-j);
-    max = (thumboard.target.maxLength > -1) ?
-        thumboard.target.maxLength : l + 1;
-    tmp = thumboard.target.value;
-    switch(e.target.abbr) {
-    case 'chr': // Clicked a character
-        if(tmp.length < max) {
-            tmp = s1 + key + s2;
-            i += 1;
-            j = i;
-        }
-        break;
-    case 'word':
-        while(i > 0 && tmp.charAt(i-1) !== ' ') {
-            i -= 1;
-        }
-        s1 = tmp.substr(0,i);
-        s2 = tmp.substr(j);
-        tmp = s1 + key + s2;
-        i = s1.length + key.length;
-        j = i;
-        while(j < tmp.length && tmp.charAt(j) != ' ') {
-            j += 1;
-        }
-        break;
-    case 'tab':
-        thumboard.target =
-            thumboard.tab(thumboard.inputs, thumboard.target);
-        thumboard.target.focus();
-        i = thumboard.target.selectionStart;
-        j = thumboard.target.selectionEnd;
-        l = thumboard.target.value.length;
-        tmp = thumboard.target.value;
-        break;
-    case 'left':
-        i = (i < j) ? i : --i;
-        i = (i < 0) ? 0 : i;
-        j = i;
-        break;
-    case 'right':
-        i = (i < j) ? j : ++i;
-        i = (i > l) ? l : i;
-        j = i;
-        break;
-    case 'back':
-        if(i < j) {
-            tmp = s1 + s2;
+},
+
+// Keyboard clicked
+'keyClick' : function(e) {
+    var obj = {};
+
+    var helper = {
+    // Todo: prefer not to let tab functions directly reference DOM
+    'tab' : function(obj) {
+        var o = obj;
+        o.current = o.current < o.inputs.length-1 ? o.current + 1 : 0;
+        o.target = o.inputs[o.current];
+        o.start = o.target.selectionStart;
+        o.end = o.target.selectionEnd;
+        o.value = o.target.value;
+        return o;
+    },
+    'shift_tab' : function(obj) {
+        var o = obj;
+        o.current = o.current > 0 ? o.current - 1 : o.inputs.length - 1;
+        o.target = o.inputs[o.current];
+        o.start = o.target.selectionStart;
+        o.end = o.target.selectionEnd;
+        o.value = o.target.value;
+        return o;
+    },
+    'left' : function(obj) {
+        var o = obj;
+        o.start = (o.start < o.end) ? o.start : o.start - 1;
+        o.start = (o.start < 0) ? 0 : o.start;
+        o.end = o.start;
+        return o;
+    },
+    'right' : function(obj) {
+        var o = obj;
+        o.start = (o.start < o.end) ? o.end : o.start + 1;
+        o.start = (o.start > o.len) ? o.len : o.start;
+        o.end = o.start;
+        return o;
+    },
+    'back' : function(obj) {
+        var o = obj;
+        if(o.start < o.end) {
+            o.value = o.str1 + o.str2;
         } else {
-            i -= (i > 0) ? 1 : 0;
-            tmp = s1.substr(0, i) + s2;
+            o.start -= (o.start > 0) ? 1 : 0;
+            o.value = o.str1.substr(0, o.start) + o.str2;
         }
-        j = i;
-        break;
-    case 'home':
-        i = 0;
-        j = 0;
-        break;
-    case 'end':
-        i = l;
-        j = i;
-        break;
-    }
-    thumboard.target.value = tmp;
-    thumboard.target.selectionStart = i;
-    thumboard.target.selectionEnd = j;
-    document.getElementById('words').innerHTML = 
-        thumboard.getFormattedWordsList(tmp, i, thumboard.words, 20);
-
-};
-
-thumboard.tab = function(inputs, target) {
-    var i = 0;
-    target = target || inputs[inputs.length-1];
-    while(i < inputs.length && inputs[i] !== target) {
-        i += 1;
-    }
-    i = i > inputs.length - 2 ? 0 : i + 1;
-    return inputs[i]; 
-}
-
-// Return word segment preceding start in value
-thumboard.getWordSeed = function(value, start) {
-    var i;
-    i = (start < 0) ? 0 : (start > value.length) ? value.length : start;
-    while(i > 0 && value.charAt(i-1) !== ' ') {
-        i -= 1;
-    }
-    return value.substr(i, start-i);
-};
-
-// Return words prefixed with seed but not fully equal to seed
-thumboard.getWordsList = function(seed, wordsArray) {
-    var i, arr = [];
-    for(i = 0; i < wordsArray.length; i++) {
-        if(seed.length < wordsArray[i].length &&
-            seed === wordsArray[i].substr(0,seed.length)) {
-            arr.push(wordsArray[i]);    
+        o.end = o.start;
+        return o;
+    },
+    'delete' : function(obj) {
+        var o = obj;
+        if(o.start < o.end) {
+            o.value = o.str1 + o.str2;
+        } else {
+            o.value = o.str1 + (o.str2.length > 0 ? o.str2.substr(1) : '');
         }
+        o.end = o.start;
+        return o;
+    },
+    'home' : function(obj) {
+        var o = obj;
+        o.start = o.end = 0;
+        return o;
+    },
+    'end' : function(obj) {
+        var o = obj;
+        o.start = o.end = o.len;
+        return o;
+    },
+    'word' : function(obj) {
+        var o = obj;
+        // Todo: do this with regex
+        while(o.start > 0 && o.value.charAt(o.start-1) !== ' ') {
+            o.start -= 1;
+        }
+        o.str1 = o.value.substr(0,o.start);
+        o.str2 = o.value.substr(o.end);
+        o.value = o.str1 + o.key + o.str2;
+        o.start = o.str1.length + o.key.length;
+        o.end = o.start;
+        while(o.end < o.value.length && o.value.charAt(o.end) !== ' ') {
+            o.end += 1;
+        }
+        return o;
+    },
+    'chr' : function(obj) {
+        var o = obj;
+        if(o.value.length < o.max) {
+            o.value = o.str1 + o.key + o.str2;
+            o.start += 1;
+            o.end = o.start;
+        }
+        return o;
     }
-    return arr;
-};
+    };
+    
+    // If target didn't have focus then return
+    if(!thumboard.config.target) {
+        return;
+    }
 
-// getFormatedWordsList
-// value is the input string
-// start equates to selectionStart
-// wordsArray is an array of words
-// max is the maximum number of words to extract
-// returns a table of words ready to add to the DOM
-thumboard.getFormattedWordsList = function (value, start, wordsArray, max) {
-    var arr, out, i;
-    arr = thumboard.getWordsList(thumboard.getWordSeed(value, start),
-        wordsArray);
-    if(arr.length > max) {
-        arr.length = max;
+    // Set up working variables
+    obj.target = thumboard.config.target;
+    obj.inputs = thumboard.config.inputs;
+    obj.current = 0;
+    while(obj.current < obj.inputs.length &&
+        obj.target !== obj.inputs[obj.current]) {
+        obj.current += 1;
     }
-    out = '<table class="words"><tr>';
+    obj.key = e.target.innerHTML;
+    obj.keytype = e.target.abbr || 'none';
+    if(obj.keytype === 'space') {
+        obj.key = ' ';
+        obj.keytype = 'chr';
+    }
+    obj.start = obj.target.selectionStart;
+    obj.end = obj.target.selectionEnd;
+    obj.len = obj.target.value.length;
+    obj.str1 = obj.target.value.substr(0,obj.start);
+    obj.str2 = obj.target.value.substr(obj.end,obj.len-obj.end);
+    obj.max = (obj.target.maxLength > -1) ?
+        obj.target.maxLength : obj.len + 1;
+    obj.value = obj.target.value;
+    
+    // Process clicked keyboard item
+    if(helper[obj.keytype]) {
+        obj = helper[obj.keytype](obj);
+        thumboard.config.target = obj.target;
+        obj.target.value = obj.value;
+        obj.target.selectionStart = obj.start;
+        obj.target.selectionEnd = obj.end;
+        thumboard.buildKeyboard(obj.value, obj.start);
+    }
+    // Return focus to target (or new target if tabbed)
+    thumboard.config.target.focus();
+},
+
+'buildKeyboard' : function(value, start) {
+    var i, j, out, seed, words, letters, arr, abbr;
+    
+    seed = thumboard.getSeed(value,start);
+    words = thumboard.getWords(seed,thumboard.config.words);
+    letters = thumboard.getLetters(seed,words,10);
+    
+    words = words.slice(0,15).sort();
+    letters.sort();
+    
+    arr = ['abcdefghijklm',
+        'nopqrstuvwxyz',
+        thumboard.config.ctlDspl,
+        letters,
+        words];
+    abbr = ['chr','chr',thumboard.config.ctlAbbr,'chr','word'];
+    out = '';
     for(i = 0; i < arr.length; i++) {
-        out += '<td abbr="word">' + arr[i] + '</td>';
+        out += '<table class="thumboard"><tr>';
+        for(j = 0; j < arr[i].length; j++) {
+            out += '<td abbr="';
+            out += typeof abbr[i] === 'string' ?
+                abbr[i] : abbr[i][j];
+            out +=  '">' + arr[i][j] + '</td>';
+        }
+        out += '</tr></table>';
     }
-    out += '</tr></table>';
-    return out;
-};
+    thumboard.config.kb.innerHTML = out;
+    
+},
 
-// ajax request
-thumboard.ajax = function (url, data, callback, type) {
-    type = 'GET'; // only type currently supported
+'getSeed' : function(value, start) {
+    return value.substr(0,start).match(/\s*(\S*)$/)[1];
+},
+
+'getWords' : function(seed, words, max) {
+    var i, arr = [],
+        re = new RegExp('^'+seed+'[\\S]+', 'i');
+        
+    max = max ? max : words.length;
+    
+    for(i = 0; i < words.length; i++) {
+        if(words[i].search(re) > -1) {
+            arr.push(words[i]);    
+        }
+    }
+    return arr.slice(0,max);    
+},
+
+'getLetters' : function(seed, words, max) {
+    var i, x, letters = {}, arr = [],
+        re = new RegExp('^'+seed+'[a-z]+', 'i');
+    
+    max = max ? max : words.length;
+        
+    // Count occurrences of letter after seed in words
+    for(i = 0; i < words.length; i++) {
+        if(words[i].search(re) > -1) {
+            x = words[i].charAt(seed.length);
+            letters[x] = (!letters[x]) ?
+                1 : letters[x] + 1;
+        }
+    }
+    for(x in letters) {
+        if(letters[x].hasOwnProperty) {
+            arr.push(x);
+        }
+    }
+
+    // Sort first by descending frequency and second by 
+    // ascending character value
+    arr.sort(function(a,b) {
+        if(letters[a] === letters[b]) {
+            return (a < b) ? -1 : 1;
+        }
+        return letters[b] - letters[a];
+    });
+
+    return arr.slice(0,max); 
+},
+    
+'ajax' : function(url, callback) {
     var xmlhttp = window.XMLHttpRequest ?
-        new XMLHttpRequest() : new ActiveXOBject("Microsoft.XMLHTTP");
+        new XMLHttpRequest() :
+        new ActiveXOBject("Microsoft.XMLHTTP");
     xmlhttp.onreadystatechange = function () {
         if(xmlhttp.readyState === 4 && xmlhttp.status === 200) {
             callback(xmlhttp);
         }
     };
-    xmlhttp.open(type, url, true);
+    xmlhttp.open('GET', url, true);
     xmlhttp.send();
+}
+
 };

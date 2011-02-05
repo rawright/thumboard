@@ -1,25 +1,34 @@
-Thumboard v0.2.1
+Thumboard v0.2.2
 
 Thumboard is a virtual keyboard intended for use on devices without
-physical keyboards and optimized for two-finger (or thumb) input.
+physical keyboards and optimized for two-finger (or thumb) input. This
+version provides limited functionality and is intended to help work
+out the concept of a thumboard.
 
-This inital version implements a qwerty-type keyboard rather than the
-thumboard. The intent is to work out the basics of the virtual keyboard
-prior to adding two-finger-enty-optimization logic. This version also
-makes use of the top1000 words list and select from that list. Matching
-words are displayed following virtual keyboard clicks. The matches
-are to word segments from the insertion point back to a previous space
-or the beginning of the input area. Fullword matches are redundant so not
-shown.
+To invoke the thumboard, execute the init function passing in the id
+of the div where the keyboard should be placed:
+    thumboard.init('thumboard');
 
-Added Qunit test cases
+The init function will look for input elements of type='text' and it
+will monitor those elements for gotFocus events. When one of the inputs
+gets focus, the thumboard will be displayed. A click of a thumboard
+key will cause the indicated change to the active input element. The
+thumboard will then be reconfigured to show the most likely letters
+or words to be entered next. If a word is clicked, the 'seed' portion
+of that word in the input field will be replaced by the entire word.
 
-This version has been tested with Chrome and Firefox. Additional code
-is needed to support ie because of the way it implements the selectionStart
-and selectionEnd attributes.
+The 'likely' next letters / words are based upon the 1000 most used
+words, according to:
+    http://www.duboislc.org/EducationWatch/First100Words.html
+
+
+This version has been tested with Chrome and Firefox. Additional
+work is required to support IE (this version uses el.selectionStart
+and el.selectionEnd).
 
 Files
 - js/thumboard.js
+- js/helper_functions.js
 - css/thumboard.css
 - json/top1000.json - top 1000 words by usage
 - index.html

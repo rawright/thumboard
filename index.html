@@ -8,25 +8,25 @@
     <body>
     <div class="page">
         <div><form id="form1">
-            Input 1: <input id="inp1" name="inp1" type="text" width="40"
-                value="" maxlength="10"
+            Input 1: <input id="inp1" name="inp1" type="text" size="80"
+                value="" maxlength="80"
                 title=""><br />
-            Input 2: <input id="inp2" name="inp2" type="text" width="40"
+            Input 2: <input id="inp2" name="inp2" type="text" size="80"
                 value="Initial value of input 2."
+                title="maxlength not set"><br />
+            Input 3: <input id="inp3" name="inp3" type="text" size="80"
+                value=""
                 title="maxlength not set">
         </form></div>
         <br />
-        <div><h3>Qwerty</h3></div>
-        <div id="qwerty">QWERTY</div>
-        <div><h3>Thumb</h3></div>
-        <div id="thumb">THUMBOARD</div>
-        <div id="words"></div>
+        <div id="thumboard">THUMBOARD</div>
     </div>
     <div id="log"></div>
+    <script type="text/javascript" src="js/helper_functions.js"></script>
     <script type="text/javascript" src="js/thumboard.js"></script>
     <script type="text/javascript">
         function initIt() {
-            thumboard.init('qwerty');
+            thumboard.init('thumboard');
             document.getElementById('form1').reset();
         }
         window.onload=initIt; 
