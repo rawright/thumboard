@@ -1,7 +1,9 @@
-// thumboard virtual keyboard - v0.2.2
+// thumboard virtual keyboard - v0.2.3
 // Copywright 2011, Rich Wright
 
 var thumboard = {
+
+'util' : ghostdeveloper.util,
 
 // Todo: disallow direct manipulation of config parameters
 'config' : {
@@ -26,7 +28,7 @@ var thumboard = {
     // Get reference to the keyboard location and hide that element
     thumboard.config.id = id || thumboard.config.id;
     thumboard.config.kb = document.getElementById(thumboard.config.id);
-    addClass(thumboard.config.kb,'hide');
+    thumboard.util.addClass(thumboard.config.kb,'hide');
     thumboard.config.hidden = true;
     
     // Get words list from server
@@ -38,14 +40,14 @@ var thumboard = {
     for(i = 0; i < inputs.length; i++) {
         if(inputs[i].type === 'text') {
             thumboard.config.inputs.push(inputs[i]);
-            addEvent(inputs[i],'focus',thumboard.gotFocus);
+            thumboard.util.addEvent(inputs[i],'focus',thumboard.gotFocus);
         }
     }
     
     // Add click event keyboard
-    addEvent(thumboard.config.kb,'click',thumboard.keyClick);
+    thumboard.util.addEvent(thumboard.config.kb,'click',thumboard.keyClick);
     // Add click event to test for lost focus and then hide keyboard
-    addEvent(document,'click',thumboard.lostFocus);
+    thumboard.util.addEvent(document,'click',thumboard.lostFocus);
 },
     
 'gotFocus' : function(e) {
@@ -55,7 +57,7 @@ var thumboard = {
     // is clicked, since it will return focus to the previous target
     thumboard.config.target = e.target;
     if(thumboard.config.hidden) {
-        removeClass(thumboard.config.kb,'hide');
+        thumboard.util.removeClass(thumboard.config.kb,'hide');
         thumboard.config.hidden = false;
     }
 },
@@ -72,7 +74,7 @@ var thumboard = {
     
     // If clicked element is not the virtual keyboard, hide the keyboard
     if(e.target.abbr === undefined) {
-        addClass(thumboard.config.kb,'hide');
+        thumboard.util.addClass(thumboard.config.kb,'hide');
         thumboard.config.hidden = true;
     }
 },

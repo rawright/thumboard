@@ -1,4 +1,6 @@
-Thumboard v0.2.2
+Thumboard v0.2.3
+
+This change mostly to move project to new hardware and change utility functions.
 
 Thumboard is a virtual keyboard intended for use on devices without
 physical keyboards and optimized for two-finger (or thumb) input. This
